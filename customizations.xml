@@ -1,0 +1,49 @@
+<ImportExportXml xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Entities></Entities>
+  <Roles></Roles>
+  <Workflows></Workflows>
+  <FieldSecurityProfiles></FieldSecurityProfiles>
+  <Templates />
+  <EntityMaps />
+  <EntityRelationships />
+  <OrganizationSettings />
+  <optionsets />
+  <WebResources>
+    <WebResource>
+      <WebResourceId>{1c750364-f41b-4752-9175-eb4d639ecd4f}</WebResourceId>
+      <Name>loqate_StyleSheet</Name>
+      <DisplayName>Style Sheet</DisplayName>
+      <WebResourceType>2</WebResourceType>
+      <IntroducedVersion>5.0</IntroducedVersion>
+      <IsCustomizable>1</IsCustomizable>
+      <CanBeDeleted>1</CanBeDeleted>
+      <IsHidden>0</IsHidden>
+      <FileName>/WebResources/loqate_StyleSheet</FileName>
+    </WebResource>
+    <WebResource>
+      <WebResourceId>{2c750364-f41b-4752-9175-eb4d639ecd4f}</WebResourceId>
+      <Name>loqate_ScriptLibrary</Name>
+      <DisplayName>Script Library</DisplayName>
+      <WebResourceType>3</WebResourceType>
+      <IntroducedVersion>5.0</IntroducedVersion>
+      <IsCustomizable>1</IsCustomizable>
+      <CanBeDeleted>1</CanBeDeleted>
+      <IsHidden>0</IsHidden>
+      <FileName>/WebResources/loqate_ScriptLibrary</FileName>
+    </WebResource>
+    <WebResource>
+      <WebResourceId>{3c750364-f41b-4752-9175-eb4d639ecd4f}</WebResourceId>
+      <Name>loqate_Entity</Name>
+      <DisplayName>Entity (Account, Contact etc) Address</DisplayName>
+      <WebResourceType>3</WebResourceType>
+      <IntroducedVersion>5.0</IntroducedVersion>
+      <IsCustomizable>1</IsCustomizable>
+      <CanBeDeleted>1</CanBeDeleted>
+      <IsHidden>0</IsHidden>
+      <FileName>/WebResources/loqate_Entity</FileName>
+    </WebResource>
+  </WebResources>
+  <Languages>
+    <Language>1033</Language>
+  </Languages>
+</ImportExportXml>

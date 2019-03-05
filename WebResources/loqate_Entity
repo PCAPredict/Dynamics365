@@ -1,0 +1,279 @@
+var contextWhenSetup = null;
+
+function getOptions(key, options) {
+    options = options || {};
+    options.key = key || "";
+    options.populate = false;
+    options.list = {
+        onlyDown: true
+    };
+    options.source = "dynamics-365-v9.1-loqate-v1";
+    options.setCountryByIP = options.setCountryByIP || false;
+    options.countries = options.countries || {};
+    if (!options.setCountryByIP)
+    {
+        options.countries.defaultCode = options.countries.defaultCode || "";
+    }
+    return options;
+}
+
+function load(executionContext, key, hasAddress1, hasAddress2, options) {
+
+    contextWhenSetup = executionContext;
+
+    // The default set of options.
+    options = getOptions(key, options);
+
+    // Copy the options out so they are not passed by reference.
+    var address1options = JSON.parse(JSON.stringify(options));
+    var address2options = JSON.parse(JSON.stringify(options));
+
+    var address1Fields = [{
+        element: "address1_line1",
+        field: "Line1",
+        mode: pca.fieldMode.SEARCH
+    },
+    {
+        element: "address1_line2",
+        field: "Line2",
+        mode: pca.fieldMode.NONE
+    },
+    {
+        element: "address1_line3",
+        field: "Line3",
+        mode: pca.fieldMode.NONE
+    },
+    {
+        element: "address1_city",
+        field: "City",
+        mode: pca.fieldMode.NONE
+    },
+    {
+        element: "address1_stateorprovince",
+        field: "Province",
+        mode: pca.fieldMode.NONE
+    },
+    // Not in composite field. Uncomment if not using composite fields.
+    //{ element: "address1_county", field: "Province", mode: pca.fieldMode.NONE },
+    {
+        element: "address1_postalcode",
+        field: "PostalCode",
+        mode: pca.fieldMode.SEARCH
+    },
+    {
+        element: "address1_country",
+        field: "CountryName",
+        mode: pca.fieldMode.COUNTRY
+    }];
+
+    var address2Fields = [{
+        element: "address2_line1",
+        field: "Line1",
+        mode: pca.fieldMode.SEARCH
+    },
+    {
+        element: "address2_line2",
+        field: "Line2",
+        mode: pca.fieldMode.NONE
+    },
+    {
+        element: "address2_line3",
+        field: "Line3",
+        mode: pca.fieldMode.NONE
+    },
+    {
+        element: "address2_city",
+        field: "City",
+        mode: pca.fieldMode.NONE
+    },
+    {
+        element: "address2_stateorprovince",
+        field: "Province",
+        mode: pca.fieldMode.NONE
+    },
+    // Not in composite field. Uncomment if not using composite fields.
+    //{ element: "address2_county", field: "Province", mode: pca.fieldMode.NONE },
+    {
+        element: "address2_postalcode",
+        field: "PostalCode",
+        mode: pca.fieldMode.SEARCH
+    },
+    {
+        element: "address2_country",
+        field: "CountryName",
+        mode: pca.fieldMode.COUNTRY
+    }];
+
+    function initialiseAddressControl(controlName, addressFields, options) {
+
+        // The Unified view will not have the elements in the visual dom by the time we run this code.
+        // Let's make a watcher to hold here until we have the elements in the dom.
+        var interval = setInterval(function () {
+            for (var i = 0; i < addressFields.length; i++) {
+                var field = addressFields[i];
+                var uiElement = getVisualElement(field.element, window.parent.document);
+
+                if (!uiElement) return;
+            }
+            clearInterval(interval);
+
+            var control = createAddressLookup(addressFields, options);
+            executionContext.setSharedVariable(controlName, control);
+        },
+        100);
+    }
+
+    function getVisualElement(field, frame) {
+        var queries = ['input[id*="' + field + '"]'];
+        for (var q = 0; q < queries.length; q++) {
+            query = queries[q];
+            var elements = frame.querySelectorAll(query);
+            for (var e = 0; e < elements.length; e++) {
+                var element = elements[e];
+                if (element) {
+                    return element;
+                }
+            }
+        }
+        return null;
+    }
+
+    function createAddressLookup(fields, options) {
+        var control = null,
+        main = window.parent.document;
+
+        //pre open fields in order to bind to the inputs
+        function checkFields() {
+            for (var i = 0; i < fields.length; i++) {
+                var field = fields[i],
+                fieldId = field.element;
+
+                field.attribute = Xrm.Page.getAttribute(fieldId);
+                field.control = field.attribute ? field.attribute.controls.get(0) : null;
+
+                field.element = getVisualElement(field.element, main);
+
+                if (!field.element) outputError("Could not find field [" + fieldId + "]");
+            }
+        }
+
+        //stop further event propagation
+        function smashEvents() {
+            function smashEnterKey(event) {
+                var keyNum = window.event ? window.event.keyCode : event.which;
+
+                if (keyNum == 13 && (control.autocomplete.visible || control.countrylist.autocomplete.visible)) pca.smash(event);
+            }
+            
+            if (!Xrm.Internal.isUci()) {
+
+                pca.listen(main, "keydown", smashEnterKey, true);
+
+                pca.listen(control.autocomplete.element, "click", pca.smash);
+                pca.listen(control.countrylist.autocomplete.element, "click", pca.smash);
+
+                pca.listen(control.autocomplete.element, "mousedown", pca.smash);
+                pca.listen(control.countrylist.autocomplete.element, "mousedown", pca.smash);
+
+                pca.listen(main, "click", function () {
+                    control.autocomplete.checkHide();
+                    control.countrylist.autocomplete.checkHide();
+                });
+            }
+        }
+
+        //get a field from the list
+        function getField(field) {
+            for (var i = 0; i < fields.length; i++) {
+                if (fields[i].field == field) return fields[i];
+            }
+
+            return "";
+        }
+
+        //inject into parent window
+        pca.loadStyle(Xrm.Page.context.prependOrgName("/WebResources/loqate_StyleSheet"), pca.reapplyStyleFixes, main);
+
+        pca.container = pca.create("div", {
+            className: "pca"
+        });
+        main.body.appendChild(pca.container);
+
+        outputLog("Resources loaded into window");
+
+        //load address control
+        checkFields();
+
+        outputLog("Creating address lookup control");
+
+        control = new pca.Address(fields, options);
+
+        smashEvents();
+
+        control.listen("populate", function (address) {
+            setTimeout(function () {
+
+                outputLog("Populating address fields");
+
+                var companyName = getField("Company"),
+                    street2 = getField("Line2"),
+                    street3 = getField("Line3"),
+                    lineCount = ((street3 && street3.attribute) ? 3 : (street2 && street2.attribute) ? 2 : 1),
+                    populateCompany = companyName && companyName.attribute && (!companyName.attribute.getValue() || control.autocomplete.field == companyName.element);
+
+                //set normal fields
+                for (var f = 0; f < fields.length; f++) {
+                    var field = fields[f];
+
+                    field.field = field.field.replace(/[\{\}]/g, "");
+
+                    if (field.field != "Company" || populateCompany) {
+                        if (field.control && field.attribute) {
+                            //set address lines based on number available
+                            if (field.field == "Line1") {
+                                var val = control.getAddressLine(address, 1, lineCount, !populateCompany);
+                                field.element.value = val;
+                                field.element.blur();
+                                field.attribute.setValue(val);
+                            }
+                            else if (field.field == "Line2") {
+                                var val = control.getAddressLine(address, 2, lineCount, !populateCompany);
+                                field.attribute.setValue(val);
+                            }
+                            else if (field.field == "Line3") {
+                                var val = control.getAddressLine(address, 3, lineCount, !populateCompany);
+                                field.attribute.setValue(val);
+                            }
+                            else if (~field.element.id.indexOf("latitude") || ~field.element.id.indexOf("longitude")) {
+                                field.attribute.setValue(parseFloat(address[field.field])); //parse lat and long
+                            }
+                            else {
+                                field.attribute.setValue(address[field.field]);
+                            }
+                        }
+                    }
+                }
+            }, 100);
+        });
+
+        control.listen("error", outputError);
+
+        return control;
+    }
+
+    function outputLog(message) {
+        console.log("Loqate: " + message);
+    }
+
+    function outputError(message) {
+        console.error("Loqate Error: " + message);
+    }
+
+    outputLog("Loading");
+
+    if (hasAddress1 && hasAddress1 === true) initialiseAddressControl("loqate_control_1", address1Fields, address1options);
+
+    if (hasAddress2 && hasAddress2 === true) initialiseAddressControl("loqate_control_2", address2Fields, address2options);
+
+    outputLog("Loaded");
+}
