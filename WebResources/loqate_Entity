@@ -28,101 +28,55 @@ function load(executionContext, key, hasAddress1, hasAddress2, options) {
     var address1options = JSON.parse(JSON.stringify(options));
     var address2options = JSON.parse(JSON.stringify(options));
 
-    var address1Fields = [{
-        element: "address1_line1",
-        field: "Line1",
-        mode: pca.fieldMode.SEARCH
-    },
-    {
-        element: "address1_line2",
-        field: "Line2",
-        mode: pca.fieldMode.NONE
-    },
-    {
-        element: "address1_line3",
-        field: "Line3",
-        mode: pca.fieldMode.NONE
-    },
-    {
-        element: "address1_city",
-        field: "City",
-        mode: pca.fieldMode.NONE
-    },
-    {
-        element: "address1_stateorprovince",
-        field: "Province",
-        mode: pca.fieldMode.NONE
-    },
-    // Not in composite field. Uncomment if not using composite fields.
-    //{ element: "address1_county", field: "Province", mode: pca.fieldMode.NONE },
-    {
-        element: "address1_postalcode",
-        field: "PostalCode",
-        mode: pca.fieldMode.SEARCH
-    },
-    {
-        element: "address1_country",
-        field: "CountryName",
-        mode: pca.fieldMode.COUNTRY
-    }];
+    var address1Fields = [
+        { element: "address1_line1", field: "Line1", mode: pca.fieldMode.SEARCH },
+        { element: "address1_line2", field: "Line2", mode: pca.fieldMode.NONE },
+        { element: "address1_line3", field: "Line3", mode: pca.fieldMode.NONE },
+        { element: "address1_city", field: "City", mode: pca.fieldMode.NONE },
+        { element: "address1_stateorprovince", field: "Province", mode: pca.fieldMode.NONE },
+        // Uncomment if not using composite fields and comment above.
+        // { element: "address1_county", field: "Province", mode: pca.fieldMode.NONE },
+        { element: "address1_postalcode", field: "PostalCode", mode: pca.fieldMode.SEARCH },
+        { element: "address1_country", field: "CountryName", mode: pca.fieldMode.COUNTRY }
+    ];
 
-    var address2Fields = [{
-        element: "address2_line1",
-        field: "Line1",
-        mode: pca.fieldMode.SEARCH
-    },
-    {
-        element: "address2_line2",
-        field: "Line2",
-        mode: pca.fieldMode.NONE
-    },
-    {
-        element: "address2_line3",
-        field: "Line3",
-        mode: pca.fieldMode.NONE
-    },
-    {
-        element: "address2_city",
-        field: "City",
-        mode: pca.fieldMode.NONE
-    },
-    {
-        element: "address2_stateorprovince",
-        field: "Province",
-        mode: pca.fieldMode.NONE
-    },
-    // Not in composite field. Uncomment if not using composite fields.
-    //{ element: "address2_county", field: "Province", mode: pca.fieldMode.NONE },
-    {
-        element: "address2_postalcode",
-        field: "PostalCode",
-        mode: pca.fieldMode.SEARCH
-    },
-    {
-        element: "address2_country",
-        field: "CountryName",
-        mode: pca.fieldMode.COUNTRY
-    }];
+    var address2Fields = [
+        { element: "address2_line1", field: "Line1", mode: pca.fieldMode.SEARCH },
+        { element: "address2_line2", field: "Line2", mode: pca.fieldMode.NONE },
+        { element: "address2_line3", field: "Line3", mode: pca.fieldMode.NONE },
+        { element: "address2_city", field: "City", mode: pca.fieldMode.NONE },
+        { element: "address2_stateorprovince", field: "Province", mode: pca.fieldMode.NONE },
+        // Uncomment if not using composite fields and comment above.
+        // { element: "address2_county", field: "Province", mode: pca.fieldMode.NONE },
+        { element: "address2_postalcode", field: "PostalCode", mode: pca.fieldMode.SEARCH },
+        { element: "address2_country", field: "CountryName", mode: pca.fieldMode.COUNTRY }
+    ];
 
+    // Entry function to find fields and create a control.
     function initialiseAddressControl(controlName, addressFields, options) {
 
         // The Unified view will not have the elements in the visual dom by the time we run this code.
         // Let's make a watcher to hold here until we have the elements in the dom.
+        // Then we are sure we are binding to something visible and all older code runs as normal.
         var interval = setInterval(function () {
             for (var i = 0; i < addressFields.length; i++) {
                 var field = addressFields[i];
                 var uiElement = getVisualElement(field.element, window.parent.document);
 
-                if (!uiElement) return;
+                if (!uiElement) {
+                    outputError("Could not find : " + field.element);
+                    return;
+                }
             }
             clearInterval(interval);
 
             var control = createAddressLookup(addressFields, options);
-            executionContext.setSharedVariable(controlName, control);
+            contextWhenSetup.setSharedVariable(controlName, control);
         },
         100);
     }
 
+    // Helper function for finding elements in the DOM.
     function getVisualElement(field, frame) {
         var queries = ['input[id*="' + field + '"]'];
         for (var q = 0; q < queries.length; q++) {
@@ -138,6 +92,7 @@ function load(executionContext, key, hasAddress1, hasAddress2, options) {
         return null;
     }
 
+    // Create our control.
     function createAddressLookup(fields, options) {
         var control = null,
         main = window.parent.document;
@@ -148,7 +103,7 @@ function load(executionContext, key, hasAddress1, hasAddress2, options) {
                 var field = fields[i],
                 fieldId = field.element;
 
-                field.attribute = Xrm.Page.getAttribute(fieldId);
+                field.attribute = contextWhenSetup.getFormContext().getAttribute(fieldId);
                 field.control = field.attribute ? field.attribute.controls.get(0) : null;
 
                 field.element = getVisualElement(field.element, main);
@@ -201,7 +156,7 @@ function load(executionContext, key, hasAddress1, hasAddress2, options) {
 
         outputLog("Resources loaded into window");
 
-        //load address control
+        // Technically this should just pass through now we have waited for elements in the DOM.
         checkFields();
 
         outputLog("Creating address lookup control");
@@ -269,11 +224,9 @@ function load(executionContext, key, hasAddress1, hasAddress2, options) {
         console.error("Loqate Error: " + message);
     }
 
-    outputLog("Loading");
+    outputLog("Initialising controls ...");
 
     if (hasAddress1 && hasAddress1 === true) initialiseAddressControl("loqate_control_1", address1Fields, address1options);
 
     if (hasAddress2 && hasAddress2 === true) initialiseAddressControl("loqate_control_2", address2Fields, address2options);
-
-    outputLog("Loaded");
 }
